@@ -132,6 +132,6 @@ app.put('/api/admin/payments/:id', authenticateToken, isAdmin, (req, res) => {
     db.run(`UPDATE payments SET status = ? WHERE id = ?`, [req.body.status, req.params.id], () => res.json({ success: true }));
 });
 
-const PORT = process.env.PORT || 3000;
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`System running on port ${PORT}`));
