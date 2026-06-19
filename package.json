@@ -1,6 +1,3 @@
-git add server.js
-git commit -m "fix: remove duplicate PORT declaration"
-git push origin main
 {
   "name": "rental-system-v4",
   "version": "1.0.0",
