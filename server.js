@@ -133,4 +133,5 @@ app.put('/api/admin/payments/:id', authenticateToken, isAdmin, (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Production-Ready V4 running at http://localhost:3000`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`System running on port ${PORT}`));
