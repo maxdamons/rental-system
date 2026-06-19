@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Rental System V4</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
+        .hidden { display: none !important; }
+        .container { max-width: 1000px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .navbar { background: #1c1c1e; padding: 15px 20px; color: white; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;}
+        .nav-links button { background: none; border: none; color: white; font-size: 16px; cursor: pointer; margin-right: 15px; font-weight: bold; }
+        .nav-links button:hover { color: #007AFF; }
+        .logout-btn { background: #FF3B30 !important; padding: 8px 12px !important; border-radius: 5px; }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .btn { background-color: #007AFF; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-green { background-color: #34C759; } .btn-red { background-color: #FF3B30; }
+        .card { background: #fafafa; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #eee; }
+        .badge { background: #FF3B30; color: white; padding: 2px 8px; border-radius: 50%; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-page" class="container" style="margin-top:100px; max-width:400px;">
+        <h2 style="text-align:center;">Secure Login</h2>
+        <input type="text" id="login-username" placeholder="Username">
+        <input type="password" id="login-password" placeholder="Password">
+        <button class="btn" style="width:100%;" onclick="login()">Login</button>
+        <p id="login-error" style="color:red; display:none; text-align:center;">Invalid credentials.</p>
+    </div>
+
+    <div id="app-layout" class="hidden">
+        <div class="navbar">
+            <div id="nav-brand" style="font-size:20px; font-weight:bold;">Rental System (Secure)</div>
+            <div class="nav-links" id="nav-menu"></div>
+        </div>
+
+        <div class="container" id="main-content">
+            
+            <!-- ADMIN DASHBOARD -->
+            <div id="tab-admin-dash" class="tab-content hidden">
+                <h2>Overview</h2>
+                <div class="grid-2" id="admin-stats" style="text-align:center; font-size: 24px; font-weight:bold;"></div>
+            </div>
+
+            <!-- ADMIN USERS -->
+            <div id="tab-admin-users" class="tab-content hidden">
+                <button class="btn btn-green" onclick="showUserForm()">+ Add User</button>
+                <div id="user-form-card" class="card hidden">
+                    <h3>Add User</h3>
+                    <div class="grid-2">
+                        <input type="text" id="u-name" placeholder="Full Name">
+                        <input type="text" id="u-username" placeholder="Username">
+                        <input type="password" id="u-password" placeholder="Password (will be encrypted)">
+                        <input type="text" id="u-email" placeholder="Email">
+                        <input type="text" id="u-phone" placeholder="Phone">
+                        <select id="u-role"><option value="tenant">Tenant</option><option value="admin">Admin</option></select>
+                    </div>
+                    <button class="btn" onclick="saveUser()">Save</button>
+                    <button class="btn btn-red" onclick="document.getElementById('user-form-card').classList.add('hidden')">Cancel</button>
+                </div>
+                <table><thead><tr><th>Name</th><th>Username</th><th>Role</th></tr></thead><tbody id="admin-users-table"></tbody></table>
+            </div>
+
+            <!-- ADMIN PAYMENTS (New Option 2) -->
+            <div id="tab-admin-payments" class="tab-content hidden">
+                <button class="btn btn-green" onclick="showPayForm()">+ Add Rent Bill</button>
+                <div id="pay-form-card" class="card hidden">
+                    <h3>Issue New Bill</h3>
+                    <select id="p-tenantId"></select>
+                    <input type="number" id="p-amount" placeholder="Amount ($)">
+                    <input type="date" id="p-date">
+                    <select id="p-status"><option value="Pending">Pending</option><option value="Paid">Paid</option></select>
+                    <button class="btn" onclick="savePayment()">Issue Bill</button>
+                    <button class="btn btn-red" onclick="document.getElementById('pay-form-card').classList.add('hidden')">Cancel</button>
+                </div>
+                <table><thead><tr><th>Tenant</th><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="admin-pay-table"></tbody></table>
+            </div>
+
+            <!-- TENANT DASHBOARD -->
+            <div id="tab-tenant-dash" class="tab-content hidden">
+                <h2>Welcome back!</h2>
+                <button class="btn" onclick="document.getElementById('notif-area').classList.toggle('hidden')">Notifications <span id="notif-count" class="badge">0</span></button>
+                <div id="notif-area" class="card hidden"><div id="notif-list"></div><button class="btn" onclick="markRead()">Mark All Read</button></div>
+                <div class="card">
+                    <h3>My Agreement</h3>
+                    <p><b>Address:</b> <span id="t-address"></span></p>
+                </div>
+                <div class="card">
+                    <h3>My Bills & Payments</h3>
+                    <table><thead><tr><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="t-pay-table"></tbody></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden PDF Template -->
+    <div id="receipt-template" class="hidden" style="padding: 40px; background: white;">
+        <h1 style="color: #007AFF;">Official Receipt</h1>
+        <p><strong>Date:</strong> <span id="pdf-date"></span></p>
+        <p><strong>Amount:</strong> $<span id="pdf-amount"></span></p>
+        <h3 style="color: green;">PAID IN FULL</h3>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let allUsers = [];
+
+        // Wrapper function to automatically attach JWT Security Token to all requests
+        async function apiFetch(url, options = {}) {
+            const token = localStorage.getItem('token');
+            if (!options.headers) options.headers = {};
+            options.headers['Content-Type'] = 'application/json';
+            if (token) options.headers['Authorization'] = 'Bearer ' + token;
+            
+            const res = await fetch(url, options);
+            if (res.status === 401 || res.status === 403) { logout(); return null; }
+            return res.json();
+        }
+
+        async function login() {
+            const u = document.getElementById('login-username').value;
+            const p = document.getElementById('login-password').value;
+            const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: u, password: p}) });
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('token', data.token); // Save secure token
+                currentUser = data.user;
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('app-layout').classList.remove('hidden');
+                buildMenu();
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        function buildMenu() {
+            const menu = document.getElementById('nav-menu');
+            if (currentUser.role === 'admin') {
+                menu.innerHTML = `<button onclick="switchTab('tab-admin-dash'); loadAdminDash()">Dashboard</button>
+                                  <button onclick="switchTab('tab-admin-users'); loadUsers()">Users</button>
+                                  <button onclick="switchTab('tab-admin-payments'); loadPayments()">Manage Payments</button>
+                                  <button class="logout-btn" onclick="logout()">Logout</button>`;
+                switchTab('tab-admin-dash'); loadAdminDash();
+            } else {
+                menu.innerHTML = `<button onclick="switchTab('tab-tenant-dash'); loadTenantDash()">My Portal</button>
+                                  <button class="logout-btn" onclick="logout()">Logout</button>`;
+                switchTab('tab-tenant-dash'); loadTenantDash();
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+        }
+
+        function logout() { localStorage.removeItem('token'); location.reload(); }
+
+        // --- ADMIN FUNCTIONS ---
+        async function loadAdminDash() {
+            const stats = await apiFetch('/api/admin/stats');
+            document.getElementById('admin-stats').innerHTML = `<div class="card">Total Users: ${stats.totalUsers}</div><div class="card">Active Leases: ${stats.activeAgreements}</div>`;
+        }
+
+        async function loadUsers() {
+            allUsers = await apiFetch('/api/admin/users');
+            const tbody = document.getElementById('admin-users-table');
+            tbody.innerHTML = '';
+            allUsers.forEach(u => tbody.innerHTML += `<tr><td>${u.name}</td><td>${u.username}</td><td>${u.role}</td></tr>`);
+        }
+        function showUserForm() { document.getElementById('user-form-card').classList.remove('hidden'); }
+        async function saveUser() {
+            const payload = {
+                name: document.getElementById('u-name').value, username: document.getElementById('u-username').value,
+                password: document.getElementById('u-password').value, email: document.getElementById('u-email').value,
+                phone: document.getElementById('u-phone').value, role: document.getElementById('u-role').value
+            };
+            await apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify(payload) });
+            document.getElementById('user-form-card').classList.add('hidden');
+            loadUsers();
+        }
+
+        // --- MANAGE PAYMENTS (Option 2) ---
+        async function loadPayments() {
+            if(allUsers.length === 0) allUsers = await apiFetch('/api/admin/users');
+            const pays = await apiFetch('/api/admin/payments');
+            const tbody = document.getElementById('admin-pay-table');
+            tbody.innerHTML = '';
+            pays.forEach(p => {
+                const actionBtn = p.status === 'Pending' ? `<button class="btn btn-green" onclick="markPaid(${p.id})">Mark Paid</button>` : 'Paid';
+                tbody.innerHTML += `<tr><td>${p.tenantName}</td><td>${p.date}</td><td>$${p.amount}</td><td>${p.status}</td><td>${actionBtn}</td></tr>`;
+            });
+        }
+        function showPayForm() {
+            const sel = document.getElementById('p-tenantId');
+            sel.innerHTML = '<option value="">-- Select Tenant --</option>';
+            allUsers.filter(u => u.role === 'tenant').forEach(t => sel.innerHTML += `<option value="${t.id}">${t.name}</option>`);
+            document.getElementById('pay-form-card').classList.remove('hidden');
+        }
+        async function savePayment() {
+            const payload = {
+                tenantId: document.getElementById('p-tenantId').value, amount: document.getElementById('p-amount').value,
+                date: document.getElementById('p-date').value, status: document.getElementById('p-status').value
+            };
+            await apiFetch('/api/admin/payments', { method: 'POST', body: JSON.stringify(payload) });
+            document.getElementById('pay-form-card').classList.add('hidden');
+            loadPayments();
+        }
+        async function markPaid(id) {
+            await apiFetch(`/api/admin/payments/${id}`, { method: 'PUT', body: JSON.stringify({status: 'Paid'}) });
+            loadPayments();
+        }
+
+        // --- TENANT FUNCTIONS ---
+        async function loadTenantDash() {
+            const data = await apiFetch(`/api/tenant/data`);
+            document.getElementById('t-address').innerText = data.agreement ? data.agreement.address : 'No active agreement.';
+            
+            const tbody = document.getElementById('t-pay-table');
+            tbody.innerHTML = '';
+            data.payments.forEach(p => {
+                const btn = p.status === 'Paid' ? `<button class="btn btn-green" onclick="downloadPDF('${p.date}','${p.amount}')">PDF Resit</button>` : '<b style="color:red;">DUE</b>';
+                tbody.innerHTML += `<tr><td>${p.date}</td><td>$${p.amount}</td><td>${p.status}</td><td>${btn}</td></tr>`;
+            });
+
+            document.getElementById('notif-count').innerText = data.notifications.filter(n=>!n.is_read).length;
+            document.getElementById('notif-list').innerHTML = data.notifications.map(n => `<p>${n.message}</p>`).join('');
+        }
+        async function markRead() { await apiFetch(`/api/notifications/read`, { method: 'POST' }); loadTenantDash(); }
+
+        function downloadPDF(date, amount) {
+            document.getElementById('pdf-date').innerText = date;
+            document.getElementById('pdf-amount').innerText = amount;
+            const el = document.getElementById('receipt-template');
+            el.classList.remove('hidden'); 
+            html2pdf().from(el).save(`Receipt_${date}.pdf`).then(() => el.classList.add('hidden'));
+        }
+    </script>
+</body>
+</html>
